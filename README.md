@@ -72,6 +72,7 @@ Sempre que sair versão nova no GitHub:
 
 ```bash
 cd ~/jumpdesk
+git restore packaging/PKGBUILD   # o build anota a versão nele; descarta isso
 git pull
 yay -Bi packaging
 ```
@@ -107,6 +108,10 @@ yay -R jumpdesk-git
 
 ## Problemas comuns
 
+- **"exists in filesystem" ao instalar** (`fast-jump-rdp-vpn` ou
+  `49-fast-jump-rdp.rules`) → você já tinha rodado o `install-system.sh`. Instale
+  deixando o pacote assumir esses arquivos:
+  `yay -Bi packaging --overwrite '/usr/local/libexec/fast-jump-rdp-vpn,/etc/polkit-1/rules.d/49-fast-jump-rdp.rules'`
 - **A VPN pede senha de admin toda vez** → faltou o `usermod` acima, ou você
   não saiu/entrou na sessão depois dele. Confira com `groups | grep fastjumprdp`.
 - **Janela em branco** (algumas GPUs) → abra com
