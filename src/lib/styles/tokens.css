@@ -1,0 +1,68 @@
+/* JumpDesk — gerado do tokens.json do design system. Não edite à mão. */
+
+:root {
+  color-scheme: light;
+  --bg: #eef2f1;
+  --surface: #f8faf9;
+  --card: #ffffff;
+  --code-bg: #e7eceb;
+  --border: #d6dfdd;
+  --border-control: #768684;
+  --text: #152120;
+  --text-soft: #3d4f4d;
+  --muted: #5a6b69;
+  --accent: #25938f;
+  --accent-strong: #1a6e6b;
+  --on-accent: #ffffff;
+  --accent-soft: #dcefed;
+  --signal-idle: #7b8987;
+  --signal-busy: #b9770e;
+  --signal-ok: #1e8f50;
+  --signal-error: #d03535;
+  --danger: #b42828;
+  --danger-soft: #fbe8e6;
+  --warning: #8a5a00;
+  --warning-soft: #fcf0d6;
+  --focus-ring: var(--accent);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 999px;
+  --topbar-h: 44px;
+  --control-h: 32px;
+  --strip-h: 296px;
+  --shadow-toast: 0 4px 16px rgba(21, 33, 32, 0.14);
+  --font-sans: "IBM Plex Sans", "Noto Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1615;
+  --surface: #141c1b;
+  --card: #1a2423;
+  --code-bg: #121a19;
+  --border: #2a3735;
+  --border-control: #647674;
+  --text: #e4edeb;
+  --text-soft: #b4c3c1;
+  --muted: #8d9e9c;
+  --accent: #3db3ac;
+  --accent-strong: #4cc4bc;
+  --on-accent: #04201e;
+  --accent-soft: #123634;
+  --signal-idle: #7f908e;
+  --signal-busy: #e2a63a;
+  --signal-ok: #3cc97a;
+  --signal-error: #f06464;
+  --danger: #f27a72;
+  --danger-soft: #3a1a18;
+  --warning: #e6b04e;
+  --warning-soft: #33280f;
+  --shadow-toast: 0 4px 16px rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,53 @@
+#!/bin/bash
+# Helper root da VPN. Instalado em /usr/local/libexec/fast-jump-rdp-vpn e
+# executado via pkexec (regra polkit permite sem senha para o grupo definido).
+#
+# Lê o openvpn como argumentos ($@) e repassa; as credenciais chegam pelo STDIN
+# (2 linhas: usuário, senha+código). Elas vão para um arquivo só do root em
+# /run, que substitui o `/dev/stdin` dos args — o openvpn lê as credenciais
+# quando quer (e de novo em reconexões), e um pipe já estaria vazio. O arquivo
+# é apagado quando o openvpn termina. Nada de senha em argv.
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+  echo "este helper precisa rodar como root (via pkexec)" >&2
+  exit 1
+fi
+
+# --stop: encerra todo openvpn rodando (do app ou de um script antigo). O app
+# não consegue matar sozinho, porque o openvpn roda como root.
+if [[ "${1:-}" == "--stop" ]]; then
+  pkill -TERM -x openvpn || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -x openvpn >/dev/null || exit 0
+    sleep 0.3
+  done
+  pkill -KILL -x openvpn || true
+  exit 0
+fi
+
+# Apenas o openvpn é permitido; valida que o primeiro arg é --config.
+if [[ "${1:-}" != "--config" ]]; then
+  echo "uso restrito: esperado --config como primeiro argumento" >&2
+  exit 2
+fi
+
+umask 077
+AUTH="$(mktemp /run/fast-jump-rdp-auth.XXXXXX)"
+trap 'rm -f "$AUTH"' EXIT
+head -n 2 > "$AUTH"
+
+args=()
+for a in "$@"; do
+  [[ "$a" == /dev/stdin ]] && a="$AUTH"
+  args+=("$a")
+done
+
+/usr/bin/openvpn "${args[@]}" &
+pid=$!
+trap 'kill -TERM "$pid" 2>/dev/null' TERM INT
+set +e
+wait "$pid"; rc=$?
+# Se o helper levou TERM, o wait volta antes do openvpn sair: espera de novo.
+while kill -0 "$pid" 2>/dev/null; do wait "$pid"; rc=$?; done
+exit "$rc"

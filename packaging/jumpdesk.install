@@ -1,0 +1,13 @@
+post_install() {
+  getent group fastjumprdp >/dev/null || groupadd fastjumprdp
+  echo ">> Para a VPN subir sem pedir senha de admin, entre no grupo (uma vez só):"
+  echo ">>   sudo usermod -aG fastjumprdp \$USER"
+  echo ">> Depois saia e entre na sessão (ou reinicie)."
+}
+
+post_upgrade() {
+  getent group fastjumprdp >/dev/null || groupadd fastjumprdp
+}
+
+# Sem groupdel na remoção: apagar o grupo tiraria o usuário dele, e uma
+# reinstalação (ou troca de nome do pacote) exigiria o usermod de novo.

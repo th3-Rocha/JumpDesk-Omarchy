@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=JumpDesk
+Comment=Acesso VPN + JumpCloud + RDP
+Exec=jumpdesk
+Icon=jumpdesk
+Terminal=false
+Categories=Network;RemoteAccess;

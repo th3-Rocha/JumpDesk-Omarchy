@@ -1,0 +1,50 @@
+# Maintainer: th3-Rocha
+# Pacote "-git": compila a última versão do GitHub. Para atualizar, rode de novo
+# `yay -Bi packaging` (veja o README). Os dados do usuário ficam em
+# ~/.config/fast-jump-rdp e ~/.local/share/fast-jump-rdp: o pacote nunca
+# mexe neles, então atualizar ou reinstalar não apaga nada.
+pkgname=jumpdesk-git
+_name=jumpdesk
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="JumpDesk: VPN + JumpCloud (VaultOne) + RDP, num app só"
+arch=('x86_64')
+url="https://github.com/th3-Rocha/jumpdesk"
+license=('MIT')
+depends=('openvpn' 'freerdp' 'webkit2gtk-4.1' 'gtk3' 'polkit' 'util-linux'
+         'iproute2' 'icu' 'openssl')
+makedepends=('git' 'rust' 'cargo' 'pnpm' 'nodejs')
+optdepends=('hyprland: abrir o RDP num workspace fixo')
+provides=("$_name")
+conflicts=("$_name")
+install="$_name.install"
+source=("$_name::git+$url.git")
+sha256sums=('SKIP')
+options=('!strip' '!lto')
+
+pkgver() {
+  cd "$_name"
+  printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "$_name"
+  pnpm install --frozen-lockfile
+  pnpm tauri build --no-bundle
+}
+
+package() {
+  cd "$_name"
+  install -Dm755 "src-tauri/target/release/$_name" "$pkgdir/usr/bin/$_name"
+
+  # helper da VPN + polkit (o caminho do helper é fixo no app e na regra)
+  install -Dm755 packaging/fast-jump-rdp-vpn "$pkgdir/usr/local/libexec/fast-jump-rdp-vpn"
+  install -Dm644 packaging/49-fast-jump-rdp.rules \
+    "$pkgdir/etc/polkit-1/rules.d/49-fast-jump-rdp.rules"
+
+  # .desktop + ícone
+  install -Dm644 packaging/jumpdesk.desktop \
+    "$pkgdir/usr/share/applications/jumpdesk.desktop"
+  install -Dm644 src-tauri/icons/128x128.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/$_name.png"
+}

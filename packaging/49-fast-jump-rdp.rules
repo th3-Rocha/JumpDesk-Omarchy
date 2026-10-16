@@ -1,0 +1,11 @@
+// Permite que membros do grupo "fastjumprdp" rodem o helper da VPN via pkexec
+// sem digitar senha. Instalado em /etc/polkit-1/rules.d/.
+// O helper só executa o openvpn; a regra é restrita ao caminho exato.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" &&
+        action.lookup("program") == "/usr/local/libexec/fast-jump-rdp-vpn" &&
+        subject.isInGroup("fastjumprdp") &&
+        subject.active) {
+        return polkit.Result.YES;
+    }
+});
