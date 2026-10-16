@@ -9,7 +9,7 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="JumpDesk: VPN + JumpCloud (VaultOne) + RDP, num app só"
 arch=('x86_64')
-url="https://github.com/th3-Rocha/jumpdesk"
+url="https://github.com/th3-Rocha/JumpDesk-Omarchy"
 license=('MIT')
 depends=('openvpn' 'freerdp' 'webkit2gtk-4.1' 'gtk3' 'polkit' 'util-linux'
          'iproute2' 'icu' 'openssl')

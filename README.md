@@ -15,7 +15,7 @@ com um clique:
 Precisa de Arch Linux (ou derivado) com o [`yay`](https://github.com/Jguer/yay).
 
 ```bash
-git clone https://github.com/th3-Rocha/jumpdesk.git ~/jumpdesk
+git clone https://github.com/th3-Rocha/JumpDesk-Omarchy.git ~/jumpdesk
 cd ~/jumpdesk
 yay -Bi packaging
 ```
