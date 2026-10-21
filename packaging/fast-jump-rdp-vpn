@@ -14,15 +14,41 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Remove interfaces tunN do openvpn (tun ou ovpn/DCO) que ficaram sem dono —
+# sobra de um openvpn que morreu sem limpar (SIGKILL, crash). As rotas da VPN
+# ficam presas nelas e, como a sessão nova cai na mesma sub-rede, o kernel
+# manda o tráfego da rede interna pela interface morta. Apagar a interface
+# leva junto as rotas presas nela.
+#   $1 = all  → todas (usado depois de matar todo openvpn)
+#   senão     → só as DOWN (uma interface viva de outro openvpn fica)
+remove_orphan_ifaces() {
+  local mode="${1:-down}" p dev
+  for p in /sys/class/net/tun*; do
+    [[ -e "$p" ]] || continue
+    dev="${p##*/}"
+    [[ "$dev" =~ ^tun[0-9]+$ ]] || continue
+    [[ -e "$p/tun_flags" ]] || ip -d -o link show dev "$dev" 2>/dev/null | grep -qw ovpn || continue
+    if [[ "$mode" != all && "$(cat "$p/operstate" 2>/dev/null)" != down ]]; then
+      continue
+    fi
+    ip link del "$dev" 2>/dev/null && echo "removi a interface órfã $dev (e as rotas presas nela)"
+  done
+  return 0
+}
+
 # --stop: encerra todo openvpn rodando (do app ou de um script antigo). O app
-# não consegue matar sozinho, porque o openvpn roda como root.
+# não consegue matar sozinho, porque o openvpn roda como root. Dá tempo para o
+# TERM (o openvpn remove interface e rotas sozinho); se precisar de KILL, a
+# interface fica para trás e é removida aqui.
 if [[ "${1:-}" == "--stop" ]]; then
   pkill -TERM -x openvpn || true
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    pgrep -x openvpn >/dev/null || exit 0
+  for _ in $(seq 20); do
+    pgrep -x openvpn >/dev/null || break
     sleep 0.3
   done
   pkill -KILL -x openvpn || true
+  sleep 0.3
+  remove_orphan_ifaces all
   exit 0
 fi
 
@@ -31,6 +57,10 @@ if [[ "${1:-}" != "--config" ]]; then
   echo "uso restrito: esperado --config como primeiro argumento" >&2
   exit 2
 fi
+
+# Antes de subir: tira interfaces mortas de sessões antigas, senão a nova
+# vira tun1 e as rotas continuam apontando para o tun0 morto.
+remove_orphan_ifaces
 
 umask 077
 AUTH="$(mktemp /run/fast-jump-rdp-auth.XXXXXX)"
