@@ -24,3 +24,7 @@ vite.config.ts.timestamp-*
 /packaging/jumpdesk/
 /packaging/*.pkg.tar.*
 /packaging/*.log
+/packaging/release/src/
+/packaging/release/pkg/
+/packaging/release/jumpdesk.install
+/packaging/release/*.pkg.tar.*

@@ -1,0 +1,125 @@
+name: Release
+
+# Todo push na main cuja versão em src-tauri/tauri.conf.json ainda não tem tag
+# compila o JumpDesk num container Arch e publica uma release v<versão> com o
+# pacote do pacman e um .tar.gz. Subir a versão é o que gera uma release.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: versão nova?
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag já foi lançada."
+          else
+            echo "Lançando $tag."
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: build (Arch x86_64)
+    needs: version
+    if: needs.version.outputs.tag != ''
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Dependências
+        run: |
+          pacman -Syu --noconfirm --needed git rust nodejs pnpm webkit2gtk-4.1 gtk3 \
+            libsoup3 librsvg dbus openssl
+      - uses: actions/checkout@v4
+      - name: Compila
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm tauri build --no-bundle
+      - name: Empacota
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          version="${TAG#v}"
+          mkdir -p dist
+          # pacote do pacman (makepkg não roda como root)
+          sed -i "s/^pkgver=.*/pkgver=$version/" packaging/release/PKGBUILD
+          cp packaging/jumpdesk.install packaging/release/
+          useradd -m builder
+          chown -R builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/release' && PKGDEST='$GITHUB_WORKSPACE/dist' makepkg --nodeps --noconfirm"
+          # tarball: binário + helper da VPN + regra polkit + instalador
+          name="jumpdesk-$TAG-x86_64-linux"
+          mkdir -p "dist/$name"
+          cp src-tauri/target/release/jumpdesk README.md "dist/$name/"
+          cp packaging/fast-jump-rdp-vpn packaging/49-fast-jump-rdp.rules \
+             packaging/install-system.sh packaging/jumpdesk.desktop "dist/$name/"
+          cp src-tauri/icons/128x128.png "dist/$name/jumpdesk.png"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          rm -rf "dist/$name"
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: release no GitHub
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Checksums e notas
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          (cd dist && sha256sum -- * > checksums.txt && cat checksums.txt)
+          previous=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          range=${previous:+$previous..}HEAD
+          {
+            echo "## Novidades"
+            echo
+            git log --no-merges --format='- %s' $range
+            echo
+            echo "## Instalar (Arch)"
+            echo
+            echo '```bash'
+            echo "sudo pacman -U jumpdesk-${TAG#v}-1-x86_64.pkg.tar.zst"
+            echo 'sudo usermod -aG fastjumprdp $USER   # uma vez só; depois saia e entre na sessão'
+            echo '```'
+          } > notes.md
+          cat notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: JumpDesk ${{ needs.version.outputs.tag }}
+          body_path: notes.md
+          files: dist/*
+          make_latest: true

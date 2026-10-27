@@ -1,0 +1,36 @@
+# Maintainer: th3-Rocha
+# Pacote binário das releases do GitHub. O workflow .github/workflows/release.yml
+# compila o app na raiz do repo e roda o makepkg aqui; pkgver vem da tag.
+# Os dados do usuário (~/.config/fast-jump-rdp e ~/.local/share/fast-jump-rdp)
+# nunca são tocados pelo pacote.
+pkgname=jumpdesk
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="JumpDesk: VPN + JumpCloud (VaultOne) + RDP, num app só"
+arch=('x86_64')
+url="https://github.com/th3-Rocha/JumpDesk-Omarchy"
+license=('MIT')
+depends=('openvpn' 'freerdp' 'webkit2gtk-4.1' 'gtk3' 'polkit' 'util-linux'
+         'iproute2' 'icu' 'openssl')
+optdepends=('hyprland: abrir o RDP num workspace fixo')
+provides=("$pkgname")
+conflicts=("$pkgname-git")
+install="$pkgname.install"   # copiado de packaging/ pelo workflow
+options=('!strip' '!lto' '!debug')
+
+package() {
+  local root="$startdir/../.."
+  install -Dm755 "$root/src-tauri/target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+
+  # helper da VPN + polkit (o caminho do helper é fixo no app e na regra)
+  install -Dm755 "$root/packaging/fast-jump-rdp-vpn" "$pkgdir/usr/local/libexec/fast-jump-rdp-vpn"
+  install -dm750 "$pkgdir/etc/polkit-1/rules.d"   # igual ao do pacote polkit
+  install -Dm644 "$root/packaging/49-fast-jump-rdp.rules" \
+    "$pkgdir/etc/polkit-1/rules.d/49-fast-jump-rdp.rules"
+
+  # .desktop + ícone
+  install -Dm644 "$root/packaging/jumpdesk.desktop" \
+    "$pkgdir/usr/share/applications/jumpdesk.desktop"
+  install -Dm644 "$root/src-tauri/icons/128x128.png" \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/$pkgname.png"
+}
